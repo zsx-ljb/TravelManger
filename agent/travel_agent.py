@@ -1,8 +1,11 @@
 import json
+import time
+import logging
 from typing import Dict, List, Any, Optional
 from langchain_core.messages import HumanMessage, AIMessage
 
 from config.settings import settings
+from config.logging_config import setup_logging
 from .state import AgentState
 from .prompts import PARSE_INTENT_PROMPT, GENERATE_RESPONSE_PROMPT, CHAT_PROMPT
 from tools.flight import FlightSearchTool
@@ -11,17 +14,13 @@ from tools.attraction import AttractionTool
 from tools.weather import WeatherTool
 from tools.map import MapTool
 
+setup_logging()
+logger = logging.getLogger(__name__)
+
 
 class TravelAgent:
     def __init__(self):
         self._init_llm()
-
-        # 初始化工具
-        self.flight_tool = FlightSearchTool()
-        self.hotel_tool = HotelSearchTool()
-        self.attraction_tool = AttractionTool()
-        self.weather_tool = WeatherTool()
-        self.map_tool = MapTool()
 
     def _init_llm(self):
         """根据配置初始化LLM"""
@@ -40,7 +39,7 @@ class TravelAgent:
                 base_url=settings.SILICONFLOW_BASE_URL,
                 temperature=0.7
             )
-            print(f"[INFO] 使用硅基流动模型: {settings.SILICONFLOW_MODEL}")
+            logger.info(f"使用硅基流动模型: {settings.SILICONFLOW_MODEL}")
 
         elif provider == "claude":
             # 使用Claude API
@@ -54,7 +53,7 @@ class TravelAgent:
                 anthropic_api_key=settings.ANTHROPIC_API_KEY,
                 temperature=0.7
             )
-            print(f"[INFO] 使用Claude模型: {settings.CLAUDE_MODEL}")
+            logger.info(f"使用Claude模型: {settings.CLAUDE_MODEL}")
 
         else:
             raise ValueError(f"不支持的AI提供商: {provider}")
@@ -103,6 +102,37 @@ class TravelAgent:
                 "success": False,
                 "error": str(e)
             }
+
+    def chat_stream(self, user_input: str, user_id: str = "default",
+                    history: Optional[List[Dict]] = None):
+        """
+        流式处理用户对话
+
+        Args:
+            user_input: 用户输入
+            user_id: 用户ID
+            history: 对话历史
+
+        Yields:
+            生成的文本块
+        """
+        try:
+            messages = self._build_history(history or [])
+
+            for chunk in self.llm.stream(
+                CHAT_PROMPT.format_messages(
+                    user_info=f"用户ID: {user_id}",
+                    history=messages,
+                    input=user_input
+                )
+            ):
+                if chunk.content:
+                    yield chunk.content
+
+        except GeneratorExit:
+            return
+        except Exception as e:
+            yield f"抱歉，处理您的请求时出现了错误: {str(e)}"
 
     def plan_trip(self, user_input: str, user_id: str = "default") -> Dict[str, Any]:
         """

@@ -33,7 +33,15 @@ class Settings:
     OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY", "")
 
     # 数据库配置
+    DATABASE_TYPE = os.getenv("DATABASE_TYPE", "sqlite")  # sqlite 或 mysql
     DATABASE_PATH = BASE_DIR / "data" / "user_memory.db"
+
+    # MySQL配置
+    MYSQL_HOST = os.getenv("MYSQL_HOST", "localhost")
+    MYSQL_PORT = int(os.getenv("MYSQL_PORT", "3306"))
+    MYSQL_USER = os.getenv("MYSQL_USER", "root")
+    MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD", "")
+    MYSQL_DATABASE = os.getenv("MYSQL_DATABASE", "travel_agent")
 
     # 应用配置
     APP_HOST = os.getenv("APP_HOST", "0.0.0.0")
@@ -43,6 +51,11 @@ class Settings:
     # API限流配置
     API_RATE_LIMIT = 100  # 每分钟最大请求数
     API_CACHE_TTL = 3600  # 缓存有效期（秒）
+
+    # JWT认证配置
+    JWT_SECRET = os.getenv("JWT_SECRET", "travel-agent-jwt-secret-key-change-in-production")
+    JWT_ALGORITHM = "HS256"
+    JWT_EXPIRE_HOURS = 1
 
 
 settings = Settings()

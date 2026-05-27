@@ -2,6 +2,9 @@ from typing import Dict, Any, List, Optional
 from abc import ABC, abstractmethod
 import requests
 import time
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class BaseTool(ABC):
@@ -44,5 +47,5 @@ class BaseTool(ABC):
             response.raise_for_status()
             return response.json()
         except requests.RequestException as e:
-            print(f"API请求失败: {e}")
+            logger.error(f"API请求失败: url={url}, error={e}")
             return None
